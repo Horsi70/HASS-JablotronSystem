@@ -342,7 +342,7 @@ class DeviceScanner():
         dec = int.from_bytes(hexstring, byteorder=sys.byteorder) # turn to 'little' if sys.byteorder is wrong
         bin_dec = bin(dec)
         binstring = bin_dec[2:]
-        binstring = binstring.zfill(32)
+        binstring = binstring.zfill(len(hexstring)*8)
         revstring = binstring [::-1]
         return revstring
 
