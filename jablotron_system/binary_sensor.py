@@ -269,7 +269,7 @@ class DeviceScanner():
                 packet_code = packet_code + switcher.get(c)
 #            self._activation_packet = b'\x80\x08\x03\x39\x39\x39' + packet_code
 # This breaks compatibility with JA-101 for now
-             self._activation_packet = b'\x80\x08\x03\x30' + packet_code
+            self._activation_packet = b'\x80\x08\x03\x30' + packet_code
 
             hass.bus.async_listen('homeassistant_stop', self.shutdown_threads)
 
@@ -460,7 +460,7 @@ class DeviceScanner():
                     self._available = True
 		
 # This part is for 106 series		
-               elif packet[:2] == b'\xd8\x0d':
+                elif packet[:2] == b'\xd8\x0d':
 
                     _LOGGER.debug('PortScanner._read(): d8 0d packet, part 1: %s', str(binascii.hexlify(packet[0:16]), 'utf-8'))
                     _LOGGER.debug('PortScanner._read(): d8 0d packet, part 2: %s', str(binascii.hexlify(packet[16:32]), 'utf-8'))
