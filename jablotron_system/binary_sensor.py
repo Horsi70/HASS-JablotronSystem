@@ -1,7 +1,86 @@
 """Jablotron Sensor platform
 
- HA forum    : https://community.home-assistant.io/t/jablotron-ja-80-series-and-ja-100-series-alarm-integration/113315/
- Github repo : https://github.com/plaksnor/HASS-JablotronSystem
+HA forum    : https://community.home-assistant.io/t/jablotron-ja-80-series-and-ja-100-series-alarm-integration/113315/
+
+The original code by mattsaxton was for a Jablotron 80 Series System
+Github repo: https://github.com/mattsaxon/HASS-Jablotron80
+
+The modified code by plaksnor was for a Jablotron 101 Series 
+Github repo: https://github.com/plaksnor/HASS-JablotronSystem
+
+The code from Horsi70 is a fork from plaksnor and for a Jablotron 106 Series but tries to not change the behavior for 101 Series
+by just adding parts for the 106 Series
+Github repo: https://github.com/Horsi70/HASS-JablotronSystem
+
+The main differences between 101 and 106 series explained
+
+                                JA-101  JA-106
+max peripheral devices      =    50       120
+max users                   =    50       300
+max sections/areas/zones    =     8        15
+max programmable outputs PG =    16        32
+
+The packets sent from an 106 Series are longer than the 101 or 80 Series
+The codes and commands are different too. This explains why a lot of people have problems with the code from plaksnor 
+on their 106
+
+This code is tested on JA-106K-LAN with 92 active devices 
+
+----------------JA-106 Series Description by Horsi70----------------------------------------------------------------------------------------
+
+The packets starting with d8 0d seem to contain some kind of status report.
+These packets contain on/off data for 1 or more sensors
+They seem to be generated once every minute (line 1,4 example), or eventually but not always at the moment an event is triggered (line 2,3,5 examples)
+
+Four examples:
+line  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16   17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32   33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48   49 50 51 52 53 54 55 56 57 58 59 60 61 62 63 64 <====================== byte number
+1    d8 0d 00 00 00 00 00 00 00 00 04 00 00 00 00 00   00 00 00 00 b0 2a 00 10 00 00 00 00 00 00 00 00   68 2a 00 10 89 d3 00 00 00 00 00 00 70 04 00 10   0b 00 00 00 f4 44 00 10 00 00 00 00 ed 58 03 00
+2    d8 0d 00 00 00 00 00 00 10 00 04 00 00 00 00 55   08 00 18 01 0b 40 9d f4 15 00 00 00 00 00 00 00   68 2a 00 10 89 d3 00 00 00 00 00 00 70 04 00 10   0b 00 00 00 f4 44 00 10 00 00 00 00 ed 58 03 00
+3    d8 0d 00 00 00 00 80 00 10 00 04 00 00 00 00 55   08 81 e4 c0 07 d0 11 d5 17 00 00 00 00 00 00 00   00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00   4d 39 05 00 0f 3e 01 00 3c 3a 01 00 00 62 00 01
+4    d8 0d 00 08 00 00 00 00 10 00 04 00 00 00 00 00   00 00 00 00 b0 2a 00 10 00 00 00 00 00 00 00 00   68 2a 00 10 89 d3 00 00 00 00 00 00 70 04 00 10   0b 00 00 00 f4 44 00 10 00 00 00 00 ed 58 03 00
+5    d8 0d 00 00 00 00 00 00 00 00 04 02 00 00 00 55   08 01 6c 41 10 30 97 56 9d 00 00 00 00 00 00 00   68 2a 00 10 89 d3 00 00 00 00 00 00 70 04 00 10   0b 00 00 00 f4 44 00 10 00 00 00 00 ed 58 03 00
+6    d8 0d 00 00 00 00 00 00 00 00 00 00 00 00 00 55   08 01 52 81 0e d0 4d 37 1e 00 00 00 00 00 00 00   68 2a 00 10 89 d3 00 00 00 00 00 00 70 04 00 10   0b 00 00 00 f4 44 00 10 00 00 00 00 ed 58 03 00
+
+
+line 1, active ID's 58 -> nothing triggered
+line 2, active ID's 44,58 -> ID 44 triggered dec 44 = hex 2c
+line 3, active ID's 31,44,58 -> ID 31 triggered dec 31 = hex 1f
+line 4, active ID's 3,44,58
+line 5, active ID's 58,65 -> ID 65 triggered dec 65 = hex 41
+line 6, active ID's none -> ID 58 closed dec 58 = hex 3a
+Remark: for the packets containing on byte 16 the 5509 or 5508, only bytes 18 to 25 seem to change. 18 to 25 not yet deciphered
+The bytes 26 to 64 do not change on arm/disarm nor on PG-Output changes
+
+The binary representation of the bytes from 3 to 18 is the vector of active contacts
+Example: hex code 2a in binary is 0010 1010 read from right to the left means that contact ID 1,3,5 are active
+
+0010 1010
+7654 3210
+
+byte   4---------------------4   5---------------------5   6---------------------6   7---------------------7   8---------------------8   9---------------------9
+ID	    7  6  5  4  3  2  1  0   15 14 13 12 11 10  9  8   23 22 21 20 19 18 17 16   31 30 29 28 27 26 25 24   39 38 37 36 35 34 33 32   47 46 45 44 43 42 41 40 
+
+byte   10-------------------10   11-------------------11   12-------------------12   13-------------------13   14-------------------14   15-------------------15
+ID	   55 54 53 52 51 50 49 48   63 62 61 60 59 58 57 56   71 70 69 68 67 66 65 64   79 78 77 76 75 74 73 72   87 86 85 84 83 82 81 80   95 94 93 92 91 90 89 88   
+
+byte   16-----------------------16   17---------------------------17   18---------------------------18
+ID     103 102 101 100 99 98 97 96   111 110 109 108 107 106 105 104   119 118 117 116 115 114 113 112
+ 
+Means for line 4 example:
+byte 4 = hex 08, bin 0000 1000, contact ID 3 is active
+byte 9 = hex 10, bin 0001 0000, contact ID 44 is active
+byte 11 = hex 04, bin 0000 0100, contact ID 58 is active
+								  
+ byte number:
+  4 upto 15 = accumulated sensor ID's of devices which are ON. See hextobin() function for decoding.
+              As in my setup, 92 out of 120 possible devices where activated, the position of the 5508 might be dependant of the number of devices activated.
+              If all 120 contacts used, the binary representation would need 15 bytes, so from 4 to 18. As only 92 are used, only 12 bytes neede so from 4 to 15.
+              That might be the reason that the 5509 packets start on byte 16 in my setup.
+ 16 and  17 = if 55 09, a specific sensor recently caused this d8 packet. Maybe 55 09 for wired and 55 09 for a wireless sensor (unconfirmed)
+         14 = specific on/off status of a sensor which has changed state
+
+
+----------------JA-101 Series Description by plaksnor----------------------------------------------------------------------------------------
 
  The code contains 2 classes:
  - DeviceScanner() is scanning for packets with sensor data
