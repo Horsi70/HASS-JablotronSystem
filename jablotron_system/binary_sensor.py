@@ -242,8 +242,9 @@ class DeviceScanner():
         self._mode = '55'
 
         """ default binary strings for comparing states in d8 packets """
-        self._old_bin_string = '0'.zfill(32)
-        self._new_bin_string = '0'.zfill(32)
+        """ length was fix to 32 for 101 series. Set to 12*8 for 106 series, but should still work for 101 series """
+        self._old_bin_string = '0'.zfill(12*8)
+        self._new_bin_string = '0'.zfill(12*8)
 
         _LOGGER.debug('DeviceScanner.__init__(): serial port: %s', format(self._file_path))
 
@@ -443,6 +444,65 @@ class DeviceScanner():
 #                            if self._available == False or (y == '1' and packet[10:12] == b'\x55\x09') or y == '0':
 #                            if self._mode == 'd8' or (self._mode == '55' and (self._available == False or (y == '1' and packet[10:12] == b'\x55\x09') or y == '0')):
                             if self._mode == 'd8' or (self._mode == '55' and (self._available == False or (y == '1' and packet[10:11] == b'\x55') or y == '0')):
+
+                                """ Create or update sensor """
+                                self._hass.add_job(
+                                    self.async_see(dev_id, _device_state)
+                                )
+
+                    """Retain last binary string"""
+                    _LOGGER.debug('PortScanner._read(): updating bin string to %s', self._new_bin_string)
+                    self._old_bin_string = self._new_bin_string
+
+                    """Set available to True since we know which devices are ON"""
+                    self._available = True
+		
+# This part is for 106 series		
+               elif packet[:2] == b'\xd8\x0d':
+
+                    _LOGGER.debug('PortScanner._read(): d8 0d packet, part 1: %s', str(binascii.hexlify(packet[0:16]), 'utf-8'))
+                    _LOGGER.debug('PortScanner._read(): d8 0d packet, part 2: %s', str(binascii.hexlify(packet[16:32]), 'utf-8'))
+                    _LOGGER.debug('PortScanner._read(): d8 0d packet, part 3: %s', str(binascii.hexlify(packet[32:48]), 'utf-8'))
+                    _LOGGER.debug('PortScanner._read(): d8 0d packet, part 4: %s', str(binascii.hexlify(packet[48:64]), 'utf-8'))
+
+                    byte4 = packet[3:4]  # first byte containing binary on/off information for ID's 0 to 7
+                    byte5 = packet[4:5]  # next byte containing binary on/off information for ID's 8 to 15
+                    byte6 = packet[5:6]  # next byte containing binary on/off information for ID's 16 to 23
+                    byte7 = packet[6:7]  # next byte containing binary on/off information for ID's 24 to 31
+                    byte8 = packet[7:8]  # next byte containing binary on/off information for ID's 32 to 39
+                    byte9 = packet[8:9]  # next byte containing binary on/off information for ID's 40 to 47
+                    byte10 = packet[9:10]  # next byte containing binary on/off information for ID's 48 to 55
+                    byte11 = packet[10:11]  # next byte containing binary on/off information for ID's 56 to 63
+                    byte12 = packet[11:12]  # next byte containing binary on/off information for ID's 64 to 71
+                    byte13 = packet[12:13]  # next byte containing binary on/off information for ID's 71 to 79
+                    byte14 = packet[13:14]  # next byte containing binary on/off information for ID's 80 to 87
+                    byte15 = packet[14:15]  # next byte containing binary on/off information for ID's 88 to 95
+			
+			
+                    """Decode sensor ID from 4th and 15th byte, create a binary string and compare this with the last generated binary string. 0 = OFF, 1 = ON"""
+                    self._new_bin_string = self._hextobin(byte4+byte5+byte6+byte7+byte8+byte9+byte10+byte11+byte12+byte13+byte14+byte15)
+                    _LOGGER.debug('PortScanner._read(): old_bin_string: %s', self._old_bin_string)
+                    _LOGGER.debug('PortScanner._read(): new_bin_string: %s', self._new_bin_string)
+
+                    for idx, (x, y) in enumerate(zip(self._old_bin_string, self._new_bin_string)):
+                      
+                        """Continue for devices which has been changed to ON or OFF."""
+                        if x != y:
+
+                            dev_id = 'jablotron_' + str(idx)
+                            entity_id = 'binary_sensor.' + dev_id
+
+                            if y == '1':
+                                _device_state = STATE_ON
+                            else:
+                                _device_state = STATE_OFF
+
+                            """Only create or update a sensor when this packet is the first d8 0d packet received since startup,
+                               or if d8 08 packet reports about 1 specific device (by containing a 55 packet) or,
+                               or if a specific device is not active anymore (y == '0')"""
+#                            if self._available == False or (y == '1' and packet[10:12] == b'\x55\x09') or y == '0':
+#                            if self._mode == 'd8' or (self._mode == '55' and (self._available == False or (y == '1' and packet[10:12] == b'\x55\x09') or y == '0')):
+                            if self._mode == 'd8' or (self._mode == '55' and (self._available == False or (y == '1' and packet[15:16] == b'\x55') or y == '0')):
 
                                 """ Create or update sensor """
                                 self._hass.add_job(
