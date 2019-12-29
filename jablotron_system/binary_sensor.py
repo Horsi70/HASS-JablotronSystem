@@ -58,10 +58,10 @@ Example: hex code 2a in binary is 0010 1010 read from right to the left means th
 7654 3210
 
 byte   4---------------------4   5---------------------5   6---------------------6   7---------------------7   8---------------------8   9---------------------9
-ID	    7  6  5  4  3  2  1  0   15 14 13 12 11 10  9  8   23 22 21 20 19 18 17 16   31 30 29 28 27 26 25 24   39 38 37 36 35 34 33 32   47 46 45 44 43 42 41 40 
+ID      7  6  5  4  3  2  1  0   15 14 13 12 11 10  9  8   23 22 21 20 19 18 17 16   31 30 29 28 27 26 25 24   39 38 37 36 35 34 33 32   47 46 45 44 43 42 41 40 
 
 byte   10-------------------10   11-------------------11   12-------------------12   13-------------------13   14-------------------14   15-------------------15
-ID	   55 54 53 52 51 50 49 48   63 62 61 60 59 58 57 56   71 70 69 68 67 66 65 64   79 78 77 76 75 74 73 72   87 86 85 84 83 82 81 80   95 94 93 92 91 90 89 88   
+ID     55 54 53 52 51 50 49 48   63 62 61 60 59 58 57 56   71 70 69 68 67 66 65 64   79 78 77 76 75 74 73 72   87 86 85 84 83 82 81 80   95 94 93 92 91 90 89 88   
 
 byte   16-----------------------16   17---------------------------17   18---------------------------18
 ID     103 102 101 100 99 98 97 96   111 110 109 108 107 106 105 104   119 118 117 116 115 114 113 112
@@ -70,8 +70,8 @@ Means for line 4 example:
 byte 4 = hex 08, bin 0000 1000, contact ID 3 is active
 byte 9 = hex 10, bin 0001 0000, contact ID 44 is active
 byte 11 = hex 04, bin 0000 0100, contact ID 58 is active
-								  
- byte number:
+
+byte number:
   4 upto 15 = accumulated sensor ID's of devices which are ON. See hextobin() function for decoding.
               As in my setup, 92 out of 120 possible devices where activated, the position of the 5508 might be dependant of the number of devices activated.
               If all 120 contacts used, the binary representation would need 15 bytes, so from 4 to 18. As only 92 are used, only 12 bytes neede so from 4 to 15.
@@ -458,8 +458,8 @@ class DeviceScanner():
 
                     """Set available to True since we know which devices are ON"""
                     self._available = True
-		
-# This part is for 106 series		
+
+# This part is for 106 series
                 elif packet[:2] == b'\xd8\x0d':
 
                     _LOGGER.debug('PortScanner._read(): d8 0d packet, part 1: %s', str(binascii.hexlify(packet[0:16]), 'utf-8'))
@@ -479,8 +479,8 @@ class DeviceScanner():
                     byte13 = packet[12:13]  # next byte containing binary on/off information for ID's 71 to 79
                     byte14 = packet[13:14]  # next byte containing binary on/off information for ID's 80 to 87
                     byte15 = packet[14:15]  # next byte containing binary on/off information for ID's 88 to 95
-			
-			
+
+
                     """Decode sensor ID from 4th and 15th byte, create a binary string and compare this with the last generated binary string. 0 = OFF, 1 = ON"""
                     self._new_bin_string = self._hextobin(byte4+byte5+byte6+byte7+byte8+byte9+byte10+byte11+byte12+byte13+byte14+byte15)
                     _LOGGER.debug('PortScanner._read(): old_bin_string: %s', self._old_bin_string)
