@@ -504,8 +504,8 @@ class DeviceScanner():
                                or if a specific device is not active anymore (y == '0')"""
 #                            if self._available == False or (y == '1' and packet[10:12] == b'\x55\x09') or y == '0':
 #                            if self._mode == 'd8' or (self._mode == '55' and (self._available == False or (y == '1' and packet[10:12] == b'\x55\x09') or y == '0')):
-                            if self._mode == 'd8' or (self._mode == '55' and (self._available == False or (y == '1' and packet[15:16] == b'\x55') or y == '0')):
-
+#                            if self._mode == 'd8' or (self._mode == '55' and (self._available == False or (y == '1' and packet[15:16] == b'\x55') or y == '0')):
+                            if x != y:
                                 """ Create or update sensor """
                                 self._hass.add_job(
                                     self.async_see(dev_id, _device_state)
