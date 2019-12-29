@@ -267,7 +267,9 @@ class DeviceScanner():
             packet_code = b''
             for c in hass.data[DOMAIN]['code']:
                 packet_code = packet_code + switcher.get(c)
-            self._activation_packet = b'\x80\x08\x03\x39\x39\x39' + packet_code
+#            self._activation_packet = b'\x80\x08\x03\x39\x39\x39' + packet_code
+# This breaks compatibility with JA-101 for now
+             self._activation_packet = b'\x80\x08\x03\x30' + packet_code
 
             hass.bus.async_listen('homeassistant_stop', self.shutdown_threads)
 
