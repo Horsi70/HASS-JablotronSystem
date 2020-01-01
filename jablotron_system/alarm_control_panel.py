@@ -424,7 +424,8 @@ class JablotronAlarm(alarm.AlarmControlPanel):
                 for c in code:
                     packet_code = packet_code + switcher.get(c)
 
-                packet = b'\x80\x08\x03\x39\x39\x39' + packet_code
+#                packet = b'\x80\x08\x03\x39\x39\x39' + packet_code
+                packet = b'\x80\x08\x03\x30' + packet_code
                 _LOGGER.info("Submitting alarmcode...")
                 self._sendPacket(packet)
 
